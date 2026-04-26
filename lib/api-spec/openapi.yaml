@@ -3,34 +3,760 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Outbound dialer API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
-    description: Health operations
+  - name: leads
+  - name: scripts
+  - name: campaigns
+  - name: calls
+  - name: dashboard
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
           content:
             application/json:
+              schema: { $ref: "#/components/schemas/HealthStatus" }
+
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Dashboard summary
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DashboardSummary" }
+
+  /dashboard/recent-calls:
+    get:
+      operationId: getRecentCalls
+      tags: [dashboard]
+      summary: Recent calls
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, default: 10 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
               schema:
-                $ref: "#/components/schemas/HealthStatus"
+                type: array
+                items: { $ref: "#/components/schemas/CallWithLead" }
+
+  /leads:
+    get:
+      operationId: listLeads
+      tags: [leads]
+      summary: List leads
+      parameters:
+        - name: search
+          in: query
+          schema: { type: string }
+        - name: status
+          in: query
+          schema: { type: string }
+        - name: tier
+          in: query
+          schema: { type: string }
+        - name: hasPhone
+          in: query
+          schema: { type: boolean }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LeadList" }
+    post:
+      operationId: createLead
+      tags: [leads]
+      summary: Create a lead
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateLeadBody" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Lead" }
+
+  /leads/stats:
+    get:
+      operationId: getLeadStats
+      tags: [leads]
+      summary: Lead aggregate statistics
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LeadStats" }
+
+  /leads/{leadId}:
+    get:
+      operationId: getLead
+      tags: [leads]
+      parameters:
+        - name: leadId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LeadDetail" }
+    patch:
+      operationId: updateLead
+      tags: [leads]
+      parameters:
+        - name: leadId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateLeadBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Lead" }
+    delete:
+      operationId: deleteLead
+      tags: [leads]
+      parameters:
+        - name: leadId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204": { description: Deleted }
+
+  /scripts:
+    get:
+      operationId: listScripts
+      tags: [scripts]
+      summary: List scripts
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ScriptSummary" }
+    post:
+      operationId: createScript
+      tags: [scripts]
+      summary: Create script
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateScriptBody" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Script" }
+
+  /scripts/{scriptId}:
+    get:
+      operationId: getScript
+      tags: [scripts]
+      parameters:
+        - name: scriptId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Script" }
+    patch:
+      operationId: updateScript
+      tags: [scripts]
+      parameters:
+        - name: scriptId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateScriptBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Script" }
+    delete:
+      operationId: deleteScript
+      tags: [scripts]
+      parameters:
+        - name: scriptId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204": { description: Deleted }
+
+  /scripts/{scriptId}/nodes:
+    post:
+      operationId: createScriptNode
+      tags: [scripts]
+      parameters:
+        - name: scriptId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateScriptNodeBody" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ScriptNode" }
+
+  /scripts/{scriptId}/nodes/{nodeId}:
+    patch:
+      operationId: updateScriptNode
+      tags: [scripts]
+      parameters:
+        - name: scriptId
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: nodeId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateScriptNodeBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ScriptNode" }
+    delete:
+      operationId: deleteScriptNode
+      tags: [scripts]
+      parameters:
+        - name: scriptId
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: nodeId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204": { description: Deleted }
+
+  /campaigns:
+    get:
+      operationId: listCampaigns
+      tags: [campaigns]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Campaign" }
+    post:
+      operationId: createCampaign
+      tags: [campaigns]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateCampaignBody" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Campaign" }
+
+  /campaigns/{campaignId}:
+    get:
+      operationId: getCampaign
+      tags: [campaigns]
+      parameters:
+        - name: campaignId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CampaignDetail" }
+
+  /campaigns/{campaignId}/next-lead:
+    get:
+      operationId: getCampaignNextLead
+      tags: [campaigns]
+      parameters:
+        - name: campaignId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NextLeadResponse" }
+
+  /calls:
+    get:
+      operationId: listCalls
+      tags: [calls]
+      parameters:
+        - name: leadId
+          in: query
+          schema: { type: integer }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/CallWithLead" }
+    post:
+      operationId: startCall
+      tags: [calls]
+      summary: Start an outbound call via Twilio
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/StartCallBody" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Call" }
+
+  /calls/{callId}:
+    get:
+      operationId: getCall
+      tags: [calls]
+      parameters:
+        - name: callId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CallWithLead" }
+    patch:
+      operationId: updateCall
+      tags: [calls]
+      summary: Update call disposition / notes
+      parameters:
+        - name: callId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateCallBody" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Call" }
+
+  /calls/{callId}/end:
+    post:
+      operationId: endCall
+      tags: [calls]
+      summary: End an active call
+      parameters:
+        - name: callId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Call" }
+
+  /twilio/status:
+    get:
+      operationId: getTwilioStatus
+      tags: [calls]
+      summary: Check Twilio connection status
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TwilioStatus" }
+
 components:
   schemas:
     HealthStatus:
       type: object
+      required: [status]
       properties:
-        status:
-          type: string
-      required:
-        - status
+        status: { type: string }
 
+    TwilioStatus:
+      type: object
+      required: [connected]
+      properties:
+        connected: { type: boolean }
+        phoneNumber: { type: string, nullable: true }
+        message: { type: string, nullable: true }
+
+    Lead:
+      type: object
+      required:
+        [
+          id,
+          name,
+          status,
+          tier,
+          leadScore,
+          createdAt,
+        ]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        phone: { type: string, nullable: true }
+        address: { type: string, nullable: true }
+        website: { type: string, nullable: true }
+        rating: { type: number, nullable: true }
+        reviewCount: { type: integer, nullable: true }
+        signalTags: { type: string, nullable: true }
+        latitude: { type: number, nullable: true }
+        longitude: { type: number, nullable: true }
+        placeId: { type: string, nullable: true }
+        leadScore: { type: integer }
+        tier: { type: string }
+        status: { type: string }
+        notes: { type: string, nullable: true }
+        lastDisposition: { type: string, nullable: true }
+        lastCalledAt: { type: string, format: date-time, nullable: true }
+        callCount: { type: integer }
+        createdAt: { type: string, format: date-time }
+
+    LeadDetail:
+      allOf:
+        - $ref: "#/components/schemas/Lead"
+        - type: object
+          properties:
+            calls:
+              type: array
+              items: { $ref: "#/components/schemas/Call" }
+
+    LeadList:
+      type: object
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Lead" }
+        total: { type: integer }
+
+    CreateLeadBody:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        phone: { type: string, nullable: true }
+        address: { type: string, nullable: true }
+        website: { type: string, nullable: true }
+        leadScore: { type: integer }
+        tier: { type: string }
+        status: { type: string }
+        notes: { type: string, nullable: true }
+
+    UpdateLeadBody:
+      type: object
+      properties:
+        name: { type: string }
+        phone: { type: string, nullable: true }
+        address: { type: string, nullable: true }
+        website: { type: string, nullable: true }
+        leadScore: { type: integer }
+        tier: { type: string }
+        status: { type: string }
+        notes: { type: string, nullable: true }
+        lastDisposition: { type: string, nullable: true }
+
+    LeadStats:
+      type: object
+      required: [total, withPhone, called, byStatus, byTier, byDisposition]
+      properties:
+        total: { type: integer }
+        withPhone: { type: integer }
+        called: { type: integer }
+        hotLeads: { type: integer }
+        byStatus:
+          type: array
+          items:
+            type: object
+            required: [key, count]
+            properties:
+              key: { type: string }
+              count: { type: integer }
+        byTier:
+          type: array
+          items:
+            type: object
+            required: [key, count]
+            properties:
+              key: { type: string }
+              count: { type: integer }
+        byDisposition:
+          type: array
+          items:
+            type: object
+            required: [key, count]
+            properties:
+              key: { type: string }
+              count: { type: integer }
+
+    ScriptSummary:
+      type: object
+      required: [id, name, isActive, nodeCount, createdAt]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        description: { type: string, nullable: true }
+        isActive: { type: boolean }
+        nodeCount: { type: integer }
+        rootNodeId: { type: integer, nullable: true }
+        createdAt: { type: string, format: date-time }
+
+    Script:
+      type: object
+      required: [id, name, isActive, createdAt, nodes]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        description: { type: string, nullable: true }
+        isActive: { type: boolean }
+        rootNodeId: { type: integer, nullable: true }
+        createdAt: { type: string, format: date-time }
+        nodes:
+          type: array
+          items: { $ref: "#/components/schemas/ScriptNode" }
+
+    CreateScriptBody:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        description: { type: string, nullable: true }
+        isActive: { type: boolean }
+
+    UpdateScriptBody:
+      type: object
+      properties:
+        name: { type: string }
+        description: { type: string, nullable: true }
+        isActive: { type: boolean }
+        rootNodeId: { type: integer, nullable: true }
+
+    ScriptNode:
+      type: object
+      required: [id, scriptId, message, options]
+      properties:
+        id: { type: integer }
+        scriptId: { type: integer }
+        title: { type: string, nullable: true }
+        message: { type: string }
+        nodeType: { type: string }
+        options:
+          type: array
+          items: { $ref: "#/components/schemas/ScriptOption" }
+
+    ScriptOption:
+      type: object
+      required: [key, label]
+      properties:
+        key: { type: string }
+        label: { type: string }
+        nextNodeId: { type: integer, nullable: true }
+        disposition: { type: string, nullable: true }
+
+    CreateScriptNodeBody:
+      type: object
+      required: [message]
+      properties:
+        title: { type: string, nullable: true }
+        message: { type: string }
+        nodeType: { type: string }
+        options:
+          type: array
+          items: { $ref: "#/components/schemas/ScriptOption" }
+
+    UpdateScriptNodeBody:
+      type: object
+      properties:
+        title: { type: string, nullable: true }
+        message: { type: string }
+        nodeType: { type: string }
+        options:
+          type: array
+          items: { $ref: "#/components/schemas/ScriptOption" }
+
+    Campaign:
+      type: object
+      required: [id, name, scriptId, status, createdAt]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        scriptId: { type: integer }
+        status: { type: string }
+        leadFilter: { type: string, nullable: true }
+        callsMade: { type: integer }
+        createdAt: { type: string, format: date-time }
+
+    CampaignDetail:
+      allOf:
+        - $ref: "#/components/schemas/Campaign"
+        - type: object
+          properties:
+            script: { $ref: "#/components/schemas/Script" }
+            queueSize: { type: integer }
+
+    CreateCampaignBody:
+      type: object
+      required: [name, scriptId]
+      properties:
+        name: { type: string }
+        scriptId: { type: integer }
+        leadFilter: { type: string, nullable: true }
+
+    NextLeadResponse:
+      type: object
+      properties:
+        lead: { $ref: "#/components/schemas/Lead" }
+        remaining: { type: integer }
+
+    Call:
+      type: object
+      required: [id, leadId, status, createdAt]
+      properties:
+        id: { type: integer }
+        leadId: { type: integer }
+        scriptId: { type: integer, nullable: true }
+        campaignId: { type: integer, nullable: true }
+        twilioCallSid: { type: string, nullable: true }
+        status: { type: string }
+        disposition: { type: string, nullable: true }
+        notes: { type: string, nullable: true }
+        durationSec: { type: integer, nullable: true }
+        pathTaken: { type: string, nullable: true }
+        startedAt: { type: string, format: date-time, nullable: true }
+        endedAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
+
+    CallWithLead:
+      allOf:
+        - $ref: "#/components/schemas/Call"
+        - type: object
+          properties:
+            leadName: { type: string }
+            leadPhone: { type: string, nullable: true }
+
+    StartCallBody:
+      type: object
+      required: [leadId]
+      properties:
+        leadId: { type: integer }
+        scriptId: { type: integer, nullable: true }
+        campaignId: { type: integer, nullable: true }
+
+    UpdateCallBody:
+      type: object
+      properties:
+        status: { type: string }
+        disposition: { type: string, nullable: true }
+        notes: { type: string, nullable: true }
+        pathTaken: { type: string, nullable: true }
+
+    DashboardSummary:
+      type: object
+      required:
+        [totalLeads, leadsWithPhone, totalCalls, callsToday, hotLeads, dispositions]
+      properties:
+        totalLeads: { type: integer }
+        leadsWithPhone: { type: integer }
+        totalCalls: { type: integer }
+        callsToday: { type: integer }
+        hotLeads: { type: integer }
+        connectedToday: { type: integer }
+        avgDurationSec: { type: number }
+        dispositions:
+          type: array
+          items:
+            type: object
+            required: [key, count]
+            properties:
+              key: { type: string }
+              count: { type: integer }
