@@ -24,6 +24,8 @@ A power dialer for SDRs running outbound cold-call campaigns against local-busin
 
 `artifacts/api-server/src/lib/twilio.ts` calls the Twilio REST API directly (no SDK) using `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, and `TWILIO_PHONE_NUMBER`. When credentials are missing, `/api/twilio/status` reports "not connected" and the dialer shows an amber warning banner. Outbound calls play a brief greeting then hold the line open while the agent works the script and ends manually.
 
+Status: Twilio integration was offered but declined. To enable real outbound calling later, either re-offer the Twilio connection or set the three env vars (`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`) directly. No code change is required — the server picks them up on restart.
+
 ## Routes
 
 Frontend: `/` dashboard, `/leads`, `/leads/:id`, `/scripts`, `/scripts/:id`, `/campaigns`, `/campaigns/:id`, `/dialer?campaignId=N`, `/calls`, `/settings`.
