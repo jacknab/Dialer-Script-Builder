@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "35eBpraoXwYny-UBmUUcZ"
+uri = "file://docs/DIALER_GUIDE.md"
+type = "text"
+title = "Outbound Ops — Dialer Guide"
