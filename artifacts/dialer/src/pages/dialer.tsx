@@ -7,6 +7,7 @@ import {
   useEndCall,
   useGetScript,
   useGetCampaign,
+  useListCampaigns,
   getGetCampaignNextLeadQueryKey,
   getGetCampaignQueryKey,
   getGetScriptQueryKey,
@@ -26,8 +27,15 @@ const DISPOSITIONS: Record<string, string> = {
 export default function Dialer() {
   const searchString = useSearch();
   const searchParams = new URLSearchParams(searchString);
-  const campaignId = Number(searchParams.get("campaignId"));
-  
+  const urlCampaignId = Number(searchParams.get("campaignId"));
+
+  // If no campaignId in the URL, fall back to the first active campaign so
+  // the agent can just visit /dialer and start working.
+  const { data: campaignList } = useListCampaigns();
+  const fallbackCampaignId =
+    campaignList?.find((c) => c.status === "active")?.id ?? campaignList?.[0]?.id ?? 0;
+  const campaignId = urlCampaignId || fallbackCampaignId;
+
   const queryClient = useQueryClient();
 
   // Campaign & Script Context
@@ -183,7 +191,20 @@ export default function Dialer() {
   }, [systemStatus, currentNode, callId, nextLead, scriptId, campaignId, startCall, updateCall, endCall, advanceToNode, handleSaveDisposition]);
 
   if (!campaignId) {
-    return <div className="p-6 text-destructive font-mono">ERROR: CAMPAIGN ID REQUIRED</div>;
+    return (
+      <div className="p-6 font-mono text-primary space-y-3">
+        <div className="text-secondary">// NO CAMPAIGN AVAILABLE</div>
+        <div className="text-muted-foreground text-sm">
+          Create a campaign first, then come back to the dialer.
+        </div>
+        <Link
+          href="/campaigns"
+          className="inline-block border border-primary px-3 py-2 text-primary hover:bg-primary hover:text-background"
+        >
+          [+] CREATE CAMPAIGN
+        </Link>
+      </div>
+    );
   }
 
   if (campLoading || scriptLoading || (systemStatus === "READY" && peekLoading)) {
