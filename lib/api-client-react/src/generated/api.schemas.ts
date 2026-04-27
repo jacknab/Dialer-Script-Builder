@@ -11,8 +11,28 @@ export interface HealthStatus {
 
 export interface TwilioStatus {
   connected: boolean;
+  voiceConnected?: boolean;
   phoneNumber?: string | null;
   message?: string | null;
+}
+
+export interface OkResponse {
+  ok: boolean;
+  message?: string | null;
+}
+
+export interface VoiceToken {
+  token: string;
+  identity: string;
+  ttlSeconds?: number;
+}
+
+export interface AgentPresence {
+  identity: string;
+  displayName: string;
+  status: string;
+  currentCallId?: string | null;
+  lastSeenAt: string;
 }
 
 export interface Lead {
@@ -43,6 +63,10 @@ export interface Call {
   scriptId?: number | null;
   campaignId?: number | null;
   twilioCallSid?: string | null;
+  agentCallSid?: string | null;
+  agentIdentity?: string | null;
+  conferenceName?: string | null;
+  holdState?: boolean;
   status: string;
   disposition?: string | null;
   notes?: string | null;
@@ -208,6 +232,9 @@ export interface StartCallBody {
   leadId: number;
   scriptId?: number | null;
   campaignId?: number | null;
+  agentIdentity?: string | null;
+  /** When true, the call is set up as a conference and the agent's browser softphone joins via Twilio Voice Device. When false (default), the legacy direct outbound dial is used. */
+  useBrowserAudio?: boolean;
 }
 
 export interface UpdateCallBody {
@@ -249,4 +276,50 @@ export type ListLeadsParams = {
 export type ListCallsParams = {
   leadId?: number;
   limit?: number;
+};
+
+export type GetVoiceTokenBody = {
+  identity: string;
+};
+
+export type HoldCallBody = {
+  callId: number;
+};
+
+export type UnholdCallBody = {
+  callId: number;
+};
+
+export type TransferCallBodyMode =
+  (typeof TransferCallBodyMode)[keyof typeof TransferCallBodyMode];
+
+export const TransferCallBodyMode = {
+  warm: "warm",
+  blind: "blind",
+} as const;
+
+export type TransferCallBody = {
+  callId: number;
+  targetIdentity: string;
+  mode?: TransferCallBodyMode;
+};
+
+export type LeaveCallBody = {
+  callId: number;
+};
+
+export type AgentHeartbeatBodyStatus =
+  (typeof AgentHeartbeatBodyStatus)[keyof typeof AgentHeartbeatBodyStatus];
+
+export const AgentHeartbeatBodyStatus = {
+  available: "available",
+  on_call: "on_call",
+  away: "away",
+} as const;
+
+export type AgentHeartbeatBody = {
+  identity: string;
+  displayName: string;
+  status?: AgentHeartbeatBodyStatus;
+  currentCallId?: string | null;
 };

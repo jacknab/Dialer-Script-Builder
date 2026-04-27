@@ -49,6 +49,10 @@ export const GetRecentCallsResponseItem = zod
     scriptId: zod.number().nullish(),
     campaignId: zod.number().nullish(),
     twilioCallSid: zod.string().nullish(),
+    agentCallSid: zod.string().nullish(),
+    agentIdentity: zod.string().nullish(),
+    conferenceName: zod.string().nullish(),
+    holdState: zod.boolean().optional(),
     status: zod.string(),
     disposition: zod.string().nullish(),
     notes: zod.string().nullish(),
@@ -186,6 +190,10 @@ export const GetLeadResponse = zod
             scriptId: zod.number().nullish(),
             campaignId: zod.number().nullish(),
             twilioCallSid: zod.string().nullish(),
+            agentCallSid: zod.string().nullish(),
+            agentIdentity: zod.string().nullish(),
+            conferenceName: zod.string().nullish(),
+            holdState: zod.boolean().optional(),
             status: zod.string(),
             disposition: zod.string().nullish(),
             notes: zod.string().nullish(),
@@ -507,6 +515,10 @@ export const ListCallsResponseItem = zod
     scriptId: zod.number().nullish(),
     campaignId: zod.number().nullish(),
     twilioCallSid: zod.string().nullish(),
+    agentCallSid: zod.string().nullish(),
+    agentIdentity: zod.string().nullish(),
+    conferenceName: zod.string().nullish(),
+    holdState: zod.boolean().optional(),
     status: zod.string(),
     disposition: zod.string().nullish(),
     notes: zod.string().nullish(),
@@ -531,6 +543,13 @@ export const StartCallBody = zod.object({
   leadId: zod.number(),
   scriptId: zod.number().nullish(),
   campaignId: zod.number().nullish(),
+  agentIdentity: zod.string().nullish(),
+  useBrowserAudio: zod
+    .boolean()
+    .optional()
+    .describe(
+      "When true, the call is set up as a conference and the agent's browser softphone joins via Twilio Voice Device. When false (default), the legacy direct outbound dial is used.",
+    ),
 });
 
 export const GetCallParams = zod.object({
@@ -544,6 +563,10 @@ export const GetCallResponse = zod
     scriptId: zod.number().nullish(),
     campaignId: zod.number().nullish(),
     twilioCallSid: zod.string().nullish(),
+    agentCallSid: zod.string().nullish(),
+    agentIdentity: zod.string().nullish(),
+    conferenceName: zod.string().nullish(),
+    holdState: zod.boolean().optional(),
     status: zod.string(),
     disposition: zod.string().nullish(),
     notes: zod.string().nullish(),
@@ -580,6 +603,10 @@ export const UpdateCallResponse = zod.object({
   scriptId: zod.number().nullish(),
   campaignId: zod.number().nullish(),
   twilioCallSid: zod.string().nullish(),
+  agentCallSid: zod.string().nullish(),
+  agentIdentity: zod.string().nullish(),
+  conferenceName: zod.string().nullish(),
+  holdState: zod.boolean().optional(),
   status: zod.string(),
   disposition: zod.string().nullish(),
   notes: zod.string().nullish(),
@@ -603,6 +630,10 @@ export const EndCallResponse = zod.object({
   scriptId: zod.number().nullish(),
   campaignId: zod.number().nullish(),
   twilioCallSid: zod.string().nullish(),
+  agentCallSid: zod.string().nullish(),
+  agentIdentity: zod.string().nullish(),
+  conferenceName: zod.string().nullish(),
+  holdState: zod.boolean().optional(),
   status: zod.string(),
   disposition: zod.string().nullish(),
   notes: zod.string().nullish(),
@@ -618,6 +649,99 @@ export const EndCallResponse = zod.object({
  */
 export const GetTwilioStatusResponse = zod.object({
   connected: zod.boolean(),
+  voiceConnected: zod.boolean().optional(),
   phoneNumber: zod.string().nullish(),
   message: zod.string().nullish(),
 });
+
+/**
+ * @summary Mint a Twilio Voice access token for the browser softphone
+ */
+export const GetVoiceTokenBody = zod.object({
+  identity: zod.string(),
+});
+
+export const GetVoiceTokenResponse = zod.object({
+  token: zod.string(),
+  identity: zod.string(),
+  ttlSeconds: zod.number().optional(),
+});
+
+/**
+ * @summary Put the lead on hold with music
+ */
+export const HoldCallBody = zod.object({
+  callId: zod.number(),
+});
+
+export const HoldCallResponse = zod.object({
+  ok: zod.boolean(),
+  message: zod.string().nullish(),
+});
+
+/**
+ * @summary Take the lead off hold
+ */
+export const UnholdCallBody = zod.object({
+  callId: zod.number(),
+});
+
+export const UnholdCallResponse = zod.object({
+  ok: zod.boolean(),
+  message: zod.string().nullish(),
+});
+
+/**
+ * @summary Transfer the call to another agent's browser softphone
+ */
+export const transferCallBodyModeDefault = `blind`;
+
+export const TransferCallBody = zod.object({
+  callId: zod.number(),
+  targetIdentity: zod.string(),
+  mode: zod.enum(["warm", "blind"]).default(transferCallBodyModeDefault),
+});
+
+export const TransferCallResponse = zod.object({
+  ok: zod.boolean(),
+  message: zod.string().nullish(),
+});
+
+/**
+ * @summary Drop only the agent leg from the call (keeps lead on the line)
+ */
+export const LeaveCallBody = zod.object({
+  callId: zod.number(),
+});
+
+export const LeaveCallResponse = zod.object({
+  ok: zod.boolean(),
+  message: zod.string().nullish(),
+});
+
+/**
+ * @summary Mark an agent as online and update last-seen
+ */
+export const AgentHeartbeatBody = zod.object({
+  identity: zod.string(),
+  displayName: zod.string(),
+  status: zod.enum(["available", "on_call", "away"]).optional(),
+  currentCallId: zod.string().nullish(),
+});
+
+export const AgentHeartbeatResponse = zod.object({
+  ok: zod.boolean(),
+  message: zod.string().nullish(),
+});
+
+/**
+ * @summary List agents seen within the last 60 seconds
+ */
+export const ListOnlineAgentsResponseItem = zod.object({
+  identity: zod.string(),
+  displayName: zod.string(),
+  status: zod.string(),
+  currentCallId: zod.string().nullish(),
+  lastSeenAt: zod.coerce.date(),
+});
+export const ListOnlineAgentsResponse = zod.array(ListOnlineAgentsResponseItem);

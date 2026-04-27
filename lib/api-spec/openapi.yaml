@@ -14,6 +14,8 @@ tags:
   - name: campaigns
   - name: calls
   - name: dashboard
+  - name: voice
+  - name: agents
 
 paths:
   /healthz:
@@ -454,6 +456,158 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/TwilioStatus" }
 
+  /voice/token:
+    post:
+      operationId: getVoiceToken
+      tags: [voice]
+      summary: Mint a Twilio Voice access token for the browser softphone
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [identity]
+              properties:
+                identity: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VoiceToken" }
+
+  /voice/hold:
+    post:
+      operationId: holdCall
+      tags: [voice]
+      summary: Put the lead on hold with music
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [callId]
+              properties:
+                callId: { type: integer }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OkResponse" }
+
+  /voice/unhold:
+    post:
+      operationId: unholdCall
+      tags: [voice]
+      summary: Take the lead off hold
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [callId]
+              properties:
+                callId: { type: integer }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OkResponse" }
+
+  /voice/transfer:
+    post:
+      operationId: transferCall
+      tags: [voice]
+      summary: Transfer the call to another agent's browser softphone
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [callId, targetIdentity]
+              properties:
+                callId: { type: integer }
+                targetIdentity: { type: string }
+                mode:
+                  type: string
+                  enum: [warm, blind]
+                  default: blind
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OkResponse" }
+
+  /voice/leave:
+    post:
+      operationId: leaveCall
+      tags: [voice]
+      summary: Drop only the agent leg from the call (keeps lead on the line)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [callId]
+              properties:
+                callId: { type: integer }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OkResponse" }
+
+  /agents/heartbeat:
+    post:
+      operationId: agentHeartbeat
+      tags: [agents]
+      summary: Mark an agent as online and update last-seen
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [identity, displayName]
+              properties:
+                identity: { type: string }
+                displayName: { type: string }
+                status:
+                  type: string
+                  enum: [available, on_call, away]
+                currentCallId:
+                  type: string
+                  nullable: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OkResponse" }
+
+  /agents/online:
+    get:
+      operationId: listOnlineAgents
+      tags: [agents]
+      summary: List agents seen within the last 60 seconds
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AgentPresence" }
+
 components:
   schemas:
     HealthStatus:
@@ -467,8 +621,34 @@ components:
       required: [connected]
       properties:
         connected: { type: boolean }
+        voiceConnected: { type: boolean }
         phoneNumber: { type: string, nullable: true }
         message: { type: string, nullable: true }
+
+    OkResponse:
+      type: object
+      required: [ok]
+      properties:
+        ok: { type: boolean }
+        message: { type: string, nullable: true }
+
+    VoiceToken:
+      type: object
+      required: [token, identity]
+      properties:
+        token: { type: string }
+        identity: { type: string }
+        ttlSeconds: { type: integer }
+
+    AgentPresence:
+      type: object
+      required: [identity, displayName, status, lastSeenAt]
+      properties:
+        identity: { type: string }
+        displayName: { type: string }
+        status: { type: string }
+        currentCallId: { type: string, nullable: true }
+        lastSeenAt: { type: string, format: date-time }
 
     Lead:
       type: object
@@ -707,6 +887,10 @@ components:
         scriptId: { type: integer, nullable: true }
         campaignId: { type: integer, nullable: true }
         twilioCallSid: { type: string, nullable: true }
+        agentCallSid: { type: string, nullable: true }
+        agentIdentity: { type: string, nullable: true }
+        conferenceName: { type: string, nullable: true }
+        holdState: { type: boolean }
         status: { type: string }
         disposition: { type: string, nullable: true }
         notes: { type: string, nullable: true }
@@ -731,6 +915,10 @@ components:
         leadId: { type: integer }
         scriptId: { type: integer, nullable: true }
         campaignId: { type: integer, nullable: true }
+        agentIdentity: { type: string, nullable: true }
+        useBrowserAudio:
+          type: boolean
+          description: When true, the call is set up as a conference and the agent's browser softphone joins via Twilio Voice Device. When false (default), the legacy direct outbound dial is used.
 
     UpdateCallBody:
       type: object

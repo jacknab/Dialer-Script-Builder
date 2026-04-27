@@ -17,6 +17,8 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  AgentHeartbeatBody,
+  AgentPresence,
   Call,
   CallWithLead,
   Campaign,
@@ -27,23 +29,30 @@ import type {
   CreateScriptNodeBody,
   DashboardSummary,
   GetRecentCallsParams,
+  GetVoiceTokenBody,
   HealthStatus,
+  HoldCallBody,
   Lead,
   LeadDetail,
   LeadList,
   LeadStats,
+  LeaveCallBody,
   ListCallsParams,
   ListLeadsParams,
   NextLeadResponse,
+  OkResponse,
   Script,
   ScriptNode,
   ScriptSummary,
   StartCallBody,
+  TransferCallBody,
   TwilioStatus,
+  UnholdCallBody,
   UpdateCallBody,
   UpdateLeadBody,
   UpdateScriptBody,
   UpdateScriptNodeBody,
+  VoiceToken,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -2214,6 +2223,597 @@ export function useGetTwilioStatus<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetTwilioStatusQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Mint a Twilio Voice access token for the browser softphone
+ */
+export const getGetVoiceTokenUrl = () => {
+  return `/api/voice/token`;
+};
+
+export const getVoiceToken = async (
+  getVoiceTokenBody: GetVoiceTokenBody,
+  options?: RequestInit,
+): Promise<VoiceToken> => {
+  return customFetch<VoiceToken>(getGetVoiceTokenUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(getVoiceTokenBody),
+  });
+};
+
+export const getGetVoiceTokenMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof getVoiceToken>>,
+    TError,
+    { data: BodyType<GetVoiceTokenBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof getVoiceToken>>,
+  TError,
+  { data: BodyType<GetVoiceTokenBody> },
+  TContext
+> => {
+  const mutationKey = ["getVoiceToken"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof getVoiceToken>>,
+    { data: BodyType<GetVoiceTokenBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return getVoiceToken(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GetVoiceTokenMutationResult = NonNullable<
+  Awaited<ReturnType<typeof getVoiceToken>>
+>;
+export type GetVoiceTokenMutationBody = BodyType<GetVoiceTokenBody>;
+export type GetVoiceTokenMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Mint a Twilio Voice access token for the browser softphone
+ */
+export const useGetVoiceToken = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof getVoiceToken>>,
+    TError,
+    { data: BodyType<GetVoiceTokenBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof getVoiceToken>>,
+  TError,
+  { data: BodyType<GetVoiceTokenBody> },
+  TContext
+> => {
+  return useMutation(getGetVoiceTokenMutationOptions(options));
+};
+
+/**
+ * @summary Put the lead on hold with music
+ */
+export const getHoldCallUrl = () => {
+  return `/api/voice/hold`;
+};
+
+export const holdCall = async (
+  holdCallBody: HoldCallBody,
+  options?: RequestInit,
+): Promise<OkResponse> => {
+  return customFetch<OkResponse>(getHoldCallUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(holdCallBody),
+  });
+};
+
+export const getHoldCallMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof holdCall>>,
+    TError,
+    { data: BodyType<HoldCallBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof holdCall>>,
+  TError,
+  { data: BodyType<HoldCallBody> },
+  TContext
+> => {
+  const mutationKey = ["holdCall"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof holdCall>>,
+    { data: BodyType<HoldCallBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return holdCall(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type HoldCallMutationResult = NonNullable<
+  Awaited<ReturnType<typeof holdCall>>
+>;
+export type HoldCallMutationBody = BodyType<HoldCallBody>;
+export type HoldCallMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Put the lead on hold with music
+ */
+export const useHoldCall = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof holdCall>>,
+    TError,
+    { data: BodyType<HoldCallBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof holdCall>>,
+  TError,
+  { data: BodyType<HoldCallBody> },
+  TContext
+> => {
+  return useMutation(getHoldCallMutationOptions(options));
+};
+
+/**
+ * @summary Take the lead off hold
+ */
+export const getUnholdCallUrl = () => {
+  return `/api/voice/unhold`;
+};
+
+export const unholdCall = async (
+  unholdCallBody: UnholdCallBody,
+  options?: RequestInit,
+): Promise<OkResponse> => {
+  return customFetch<OkResponse>(getUnholdCallUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(unholdCallBody),
+  });
+};
+
+export const getUnholdCallMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unholdCall>>,
+    TError,
+    { data: BodyType<UnholdCallBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof unholdCall>>,
+  TError,
+  { data: BodyType<UnholdCallBody> },
+  TContext
+> => {
+  const mutationKey = ["unholdCall"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof unholdCall>>,
+    { data: BodyType<UnholdCallBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return unholdCall(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UnholdCallMutationResult = NonNullable<
+  Awaited<ReturnType<typeof unholdCall>>
+>;
+export type UnholdCallMutationBody = BodyType<UnholdCallBody>;
+export type UnholdCallMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Take the lead off hold
+ */
+export const useUnholdCall = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unholdCall>>,
+    TError,
+    { data: BodyType<UnholdCallBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof unholdCall>>,
+  TError,
+  { data: BodyType<UnholdCallBody> },
+  TContext
+> => {
+  return useMutation(getUnholdCallMutationOptions(options));
+};
+
+/**
+ * @summary Transfer the call to another agent's browser softphone
+ */
+export const getTransferCallUrl = () => {
+  return `/api/voice/transfer`;
+};
+
+export const transferCall = async (
+  transferCallBody: TransferCallBody,
+  options?: RequestInit,
+): Promise<OkResponse> => {
+  return customFetch<OkResponse>(getTransferCallUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(transferCallBody),
+  });
+};
+
+export const getTransferCallMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof transferCall>>,
+    TError,
+    { data: BodyType<TransferCallBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof transferCall>>,
+  TError,
+  { data: BodyType<TransferCallBody> },
+  TContext
+> => {
+  const mutationKey = ["transferCall"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof transferCall>>,
+    { data: BodyType<TransferCallBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return transferCall(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type TransferCallMutationResult = NonNullable<
+  Awaited<ReturnType<typeof transferCall>>
+>;
+export type TransferCallMutationBody = BodyType<TransferCallBody>;
+export type TransferCallMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Transfer the call to another agent's browser softphone
+ */
+export const useTransferCall = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof transferCall>>,
+    TError,
+    { data: BodyType<TransferCallBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof transferCall>>,
+  TError,
+  { data: BodyType<TransferCallBody> },
+  TContext
+> => {
+  return useMutation(getTransferCallMutationOptions(options));
+};
+
+/**
+ * @summary Drop only the agent leg from the call (keeps lead on the line)
+ */
+export const getLeaveCallUrl = () => {
+  return `/api/voice/leave`;
+};
+
+export const leaveCall = async (
+  leaveCallBody: LeaveCallBody,
+  options?: RequestInit,
+): Promise<OkResponse> => {
+  return customFetch<OkResponse>(getLeaveCallUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(leaveCallBody),
+  });
+};
+
+export const getLeaveCallMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof leaveCall>>,
+    TError,
+    { data: BodyType<LeaveCallBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof leaveCall>>,
+  TError,
+  { data: BodyType<LeaveCallBody> },
+  TContext
+> => {
+  const mutationKey = ["leaveCall"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof leaveCall>>,
+    { data: BodyType<LeaveCallBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return leaveCall(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type LeaveCallMutationResult = NonNullable<
+  Awaited<ReturnType<typeof leaveCall>>
+>;
+export type LeaveCallMutationBody = BodyType<LeaveCallBody>;
+export type LeaveCallMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Drop only the agent leg from the call (keeps lead on the line)
+ */
+export const useLeaveCall = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof leaveCall>>,
+    TError,
+    { data: BodyType<LeaveCallBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof leaveCall>>,
+  TError,
+  { data: BodyType<LeaveCallBody> },
+  TContext
+> => {
+  return useMutation(getLeaveCallMutationOptions(options));
+};
+
+/**
+ * @summary Mark an agent as online and update last-seen
+ */
+export const getAgentHeartbeatUrl = () => {
+  return `/api/agents/heartbeat`;
+};
+
+export const agentHeartbeat = async (
+  agentHeartbeatBody: AgentHeartbeatBody,
+  options?: RequestInit,
+): Promise<OkResponse> => {
+  return customFetch<OkResponse>(getAgentHeartbeatUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(agentHeartbeatBody),
+  });
+};
+
+export const getAgentHeartbeatMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof agentHeartbeat>>,
+    TError,
+    { data: BodyType<AgentHeartbeatBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof agentHeartbeat>>,
+  TError,
+  { data: BodyType<AgentHeartbeatBody> },
+  TContext
+> => {
+  const mutationKey = ["agentHeartbeat"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof agentHeartbeat>>,
+    { data: BodyType<AgentHeartbeatBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return agentHeartbeat(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AgentHeartbeatMutationResult = NonNullable<
+  Awaited<ReturnType<typeof agentHeartbeat>>
+>;
+export type AgentHeartbeatMutationBody = BodyType<AgentHeartbeatBody>;
+export type AgentHeartbeatMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Mark an agent as online and update last-seen
+ */
+export const useAgentHeartbeat = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof agentHeartbeat>>,
+    TError,
+    { data: BodyType<AgentHeartbeatBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof agentHeartbeat>>,
+  TError,
+  { data: BodyType<AgentHeartbeatBody> },
+  TContext
+> => {
+  return useMutation(getAgentHeartbeatMutationOptions(options));
+};
+
+/**
+ * @summary List agents seen within the last 60 seconds
+ */
+export const getListOnlineAgentsUrl = () => {
+  return `/api/agents/online`;
+};
+
+export const listOnlineAgents = async (
+  options?: RequestInit,
+): Promise<AgentPresence[]> => {
+  return customFetch<AgentPresence[]>(getListOnlineAgentsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListOnlineAgentsQueryKey = () => {
+  return [`/api/agents/online`] as const;
+};
+
+export const getListOnlineAgentsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listOnlineAgents>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listOnlineAgents>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListOnlineAgentsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listOnlineAgents>>
+  > = ({ signal }) => listOnlineAgents({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listOnlineAgents>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListOnlineAgentsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listOnlineAgents>>
+>;
+export type ListOnlineAgentsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List agents seen within the last 60 seconds
+ */
+
+export function useListOnlineAgents<
+  TData = Awaited<ReturnType<typeof listOnlineAgents>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listOnlineAgents>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListOnlineAgentsQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

@@ -17,6 +17,7 @@ import {
 import {
   endTwilioCall,
   isTwilioConfigured,
+  isVoiceConfigured,
   placeOutboundCall,
 } from "../lib/twilio";
 
@@ -77,8 +78,21 @@ router.post("/calls", async (req, res): Promise<void> => {
 
   let twilioCallSid: string | null = null;
   let status = "initiated";
+  const useBrowserAudio = parsed.data.useBrowserAudio === true;
 
-  if (lead.phone && isTwilioConfigured()) {
+  // Browser-audio mode: don't place the outbound call here. The browser
+  // softphone will trigger it via the TwiML webhook and we'll record the
+  // lead's call SID at that point. Just create the row + reserve a
+  // conference name for hold/transfer.
+  if (useBrowserAudio) {
+    if (!lead.phone) {
+      status = "no_phone";
+    } else if (!isTwilioConfigured()) {
+      status = "no_twilio";
+    } else {
+      status = "browser_pending";
+    }
+  } else if (lead.phone && isTwilioConfigured()) {
     const result = await placeOutboundCall({ to: lead.phone });
     if (result.success && result.callSid) {
       twilioCallSid = result.callSid;
@@ -99,11 +113,23 @@ router.post("/calls", async (req, res): Promise<void> => {
       leadId: parsed.data.leadId,
       scriptId: parsed.data.scriptId ?? null,
       campaignId: parsed.data.campaignId ?? null,
+      agentIdentity: parsed.data.agentIdentity ?? null,
       twilioCallSid,
       status,
       startedAt: new Date(),
     })
     .returning();
+
+  // Reserve a deterministic conference name for browser-audio calls so
+  // the TwiML webhook (which fires after the browser connects) can find it.
+  if (useBrowserAudio && call) {
+    const conferenceName = `dialer-${call.id}`;
+    await db
+      .update(callsTable)
+      .set({ conferenceName })
+      .where(eq(callsTable.id, call.id));
+    call.conferenceName = conferenceName;
+  }
 
   await db
     .update(leadsTable)
@@ -224,11 +250,15 @@ router.post("/calls/:callId/end", async (req, res): Promise<void> => {
 
 router.get("/twilio/status", async (_req, res): Promise<void> => {
   const configured = isTwilioConfigured();
+  const voice = isVoiceConfigured();
   res.json({
     connected: configured,
+    voiceConnected: voice,
     phoneNumber: process.env["TWILIO_PHONE_NUMBER"] ?? null,
     message: configured
-      ? "Twilio is connected"
+      ? voice
+        ? "Twilio + browser softphone ready"
+        : "Twilio is connected. Add TWILIO_API_KEY_SID, TWILIO_API_KEY_SECRET, TWILIO_TWIML_APP_SID to enable the browser softphone."
       : "Twilio credentials are not configured. Calls will be logged but not placed.",
   });
 });
